@@ -151,7 +151,7 @@
                           <div class="token-name">{{ token.name }}</div>
                         </div>
                         <div class="token-balance">
-                          <div class="balance-amount">{{ formatTokenBalance(token.balance, 4) }}</div>
+                          <div class="balance-amount">{{ token.formattedBalance }}</div>
                           <div class="balance-value">{{ formatUSD(token.usdValue) }}</div>
                         </div>
                       </div>
@@ -190,7 +190,7 @@
 
 <script>
 import { getAddressBalance, getAddressTokenBalances, formatBalanceData } from '@/api/okx'
-import { formatUSD, formatAddress, formatTokenBalance, sortTokensByValue } from '@/utils/formatters'
+import { formatUSD, formatAddress, sortTokensByValue } from '@/utils/formatters'
 
 export default {
   name: 'BalanceChecker',
@@ -278,7 +278,6 @@ export default {
   methods: {
     formatUSD,
     formatAddress,
-    formatTokenBalance,
     sortTokensByValue,
 
     async checkBalances() {

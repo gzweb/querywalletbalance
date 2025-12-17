@@ -1,6 +1,7 @@
 import axios from 'axios'
 import CryptoJS from 'crypto-js'
 import { OKX_CONFIG } from '@/config/api'
+import { formatTokenBalance } from '@/utils/formatters'
 
 // 创建axios实例
 const apiClient = axios.create({
@@ -300,6 +301,7 @@ const formatOkxWalletBalanceToAddressBalance = (okxWalletBalances, address) => {
           symbol: tokenData.symbol || 'UNKNOWN',
           name: tokenData.symbol || 'Unknown Token',
           balance: tokenData.balance || '0',
+          formattedBalance: formatTokenBalance(tokenData.balance || '0', 4), // 预格式化余额，避免模板中重复计算
           usdValue: parseFloat(tokenData.tokenPrice || 0) * parseFloat(tokenData.balance || 0),
           contractAddress: tokenData.tokenContractAddress || '',
           decimals: 18, // 默认18位小数，实际应该根据代币查询
