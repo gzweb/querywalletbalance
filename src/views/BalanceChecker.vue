@@ -298,68 +298,19 @@ export default {
       this.loadingProgress = 0
       this.results = []
 
+      // 设置最大超时时间（30秒），防止无限loading
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('查询超时，请稍后重试')), 30000)
+      })
+
       try {
         const addresses = this.parsedAddresses
-        const totalAddresses = addresses.length
-        let processedCount = 0
 
-        // 设置初始进度
-        this.loadingProgress = 0
+        // 创建主要的查询逻辑
+        const queryPromise = this.performBatchQuery(addresses)
 
-        // 逐个查询地址，每个地址间隔1秒
-        for (let i = 0; i < addresses.length; i++) {
-          const address = addresses[i]
-          this.currentLoadingAddress = address
-
-          try {
-            console.log(`正在查询第 ${i + 1}/${totalAddresses} 个地址: ${address}`)
-            const result = await getAddressBalance(address)
-
-            if (result && result.balance) {
-              const formattedData = formatBalanceData(result)
-              const tokenCount = formattedData.tokens.length
-              this.results.push({
-                address: address,
-                success: true,
-                tokens: formattedData.tokens,
-                tokensByChain: formattedData.tokensByChain,
-                totalValue: formattedData.totalValue,
-                tokenCount
-              })
-            } else {
-              this.results.push({
-                address: address,
-                success: false,
-                error: '无余额数据',
-                tokens: [],
-                tokensByChain: {},
-                totalValue: 0,
-                tokenCount: 0
-              })
-            }
-          } catch (error) {
-            console.error(`查询地址 ${address} 失败:`, error)
-            this.results.push({
-              address: address,
-              success: false,
-              error: error.message,
-              tokens: [],
-              tokensByChain: {},
-              totalValue: 0,
-              tokenCount: 0
-            })
-          }
-
-          processedCount++
-          // 更新进度
-          const progress = Math.min(100, Math.max(0, Math.round((processedCount / totalAddresses) * 100)))
-          this.loadingProgress = Number(progress) // 确保是数字类型
-
-          // 除了最后一个地址，都要等待1秒
-          if (i < addresses.length - 1) {
-            await this.sleep(1000)
-          }
-        }
+        // 使用Promise.race确保不会无限等待
+        await Promise.race([queryPromise, timeoutPromise])
 
         this.$message.success(`查询完成，共处理 ${addresses.length} 个地址`)
 
@@ -370,6 +321,68 @@ export default {
         this.loading = false
         this.loadingProgress = 100 // 确保完成时显示100%
         this.currentLoadingAddress = ''
+      }
+    },
+
+    async performBatchQuery(addresses) {
+      const totalAddresses = addresses.length
+      let processedCount = 0
+
+      // 设置初始进度
+      this.loadingProgress = 0
+
+      // 逐个查询地址，每个地址间隔1秒
+      for (let i = 0; i < addresses.length; i++) {
+        const address = addresses[i]
+        this.currentLoadingAddress = address
+
+        try {
+          const result = await getAddressBalance(address)
+
+          if (result && result.balance) {
+            const formattedData = formatBalanceData(result)
+            const tokenCount = formattedData.tokens.length
+            this.results.push({
+              address: address,
+              success: true,
+              tokens: formattedData.tokens,
+              tokensByChain: formattedData.tokensByChain,
+              totalValue: formattedData.totalValue,
+              tokenCount
+            })
+          } else {
+            this.results.push({
+              address: address,
+              success: false,
+              error: '无余额数据',
+              tokens: [],
+              tokensByChain: {},
+              totalValue: 0,
+              tokenCount: 0
+            })
+          }
+        } catch (error) {
+          console.error(`查询地址失败:`, error.message)
+          this.results.push({
+            address: address,
+            success: false,
+            error: error.message,
+            tokens: [],
+            tokensByChain: {},
+            totalValue: 0,
+            tokenCount: 0
+          })
+        }
+
+        processedCount++
+        // 更新进度
+        const progress = Math.min(100, Math.max(0, Math.round((processedCount / totalAddresses) * 100)))
+        this.loadingProgress = Number(progress)
+
+        // 除了最后一个地址，都要等待1秒
+        if (i < addresses.length - 1) {
+          await this.sleep(1000)
+        }
       }
     },
 
@@ -403,9 +416,7 @@ export default {
     },
 
     toggleAddressExpansion(index) {
-      console.log('点击展开/收起:', index)
       this.$set(this.expandedStates, index, !this.expandedStates[index])
-      console.log('展开状态:', this.expandedStates[index])
     },
 
     isExpanded(index) {

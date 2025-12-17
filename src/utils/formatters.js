@@ -42,11 +42,8 @@ export const formatUSD = (value) => {
  */
 export const formatTokenBalance = (balance, decimals = 4) => {
   // OKX API返回的balance已经是小数值，直接格式化为指定小数位
-  console.log('格式化代币余额:', balance, '小数位:', decimals)
   const num = new BigNumber(balance || 0)
-  const result = formatNumber(num, decimals)
-  console.log('格式化结果:', result)
-  return result
+  return formatNumber(num, decimals)
 }
 
 /**

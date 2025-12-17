@@ -25,13 +25,9 @@ const generateSignature = (method, requestPath, body = '', timestamp) => {
   // OKX API v6 签名格式：timestamp + method + requestPath + body
   // 注意：时间戳格式需要匹配API要求
   const message = timestamp + method + requestPath + body
-  console.log('签名消息:', message)
 
   const signature = CryptoJS.HmacSHA256(message, OKX_CONFIG.API_SECRET)
-  const base64Signature = CryptoJS.enc.Base64.stringify(signature)
-
-  console.log('生成的签名:', base64Signature.substring(0, 30) + '...')
-  return base64Signature
+  return CryptoJS.enc.Base64.stringify(signature)
 }
 
 // 请求拦截器 - 添加认证信息
@@ -56,14 +52,6 @@ apiClient.interceptors.request.use(
         config.headers['OK-ACCESS-PROJECT'] = OKX_CONFIG.PROJECT_ID
       }
 
-      console.log('API请求详情:', {
-        method,
-        url: config.url,
-        requestPath,
-        timestamp,
-        signature: signature.substring(0, 20) + '...', // 只显示前20个字符
-        body
-      })
     } else {
       console.warn('OKX API Key 未配置，使用公开接口（可能受限）')
     }
@@ -104,8 +92,6 @@ export const getAddressTokenBalances = async (address, chains = '1,10,56,42161,3
       throw new Error('需要配置 OKX API Key 才能查询地址余额')
     }
 
-    console.log(`调用OKX Wallet API v6查询地址余额: ${address}, 链: ${chains}`)
-
     // 准备请求参数 - v6 API使用POST请求和不同的参数结构
     const chainArray = chains.split(',').map(chainId => ({
       chainIndex: chainId.trim(),
@@ -125,7 +111,6 @@ export const getAddressTokenBalances = async (address, chains = '1,10,56,42161,3
       throw new Error(`OKX Wallet API v6错误: ${response.msg || response.code}`)
     }
 
-    console.log('OKX Wallet API v6响应成功:', response)
     // API返回的数据结构: { data: [{ tokenAssets: [...] }] }
     if (response.data && Array.isArray(response.data) && response.data.length > 0) {
       return response.data[0].tokenAssets || []
@@ -143,14 +128,11 @@ export const getAccountBalance = async () => {
       throw new Error('需要配置 OKX API Key 才能查询账户余额')
     }
 
-    console.log('调用OKX API查询账户余额...')
     const response = await apiClient.get(`/api/${OKX_CONFIG.API_VERSION}/account/balance`)
 
     if (response.code !== '0') {
       throw new Error(`OKX API错误: ${response.msg || response.code}`)
     }
-
-    console.log('OKX API响应成功:', response)
     return response.data || []
   } catch (error) {
     console.error('获取账户余额失败:', error)
@@ -187,11 +169,8 @@ export const getTokenInfo = async (chainId = '') => {
  */
 export const getAddressBalance = async (address) => {
   try {
-    console.log('开始查询地址余额:', address)
-
     // 使用OKX Wallet API查询地址的所有代币余额
     const addressBalances = await getAddressTokenBalances(address)
-    console.log('成功获取地址余额:', addressBalances)
 
     // 转换OKX API响应格式为应用期望的格式
     return formatOkxWalletBalanceToAddressBalance(addressBalances, address)
@@ -310,9 +289,6 @@ export const formatBalanceData = (balanceData) => {
  * @returns {Object} 转换后的余额数据
  */
 const formatOkxWalletBalanceToAddressBalance = (okxWalletBalances, address) => {
-  console.log('转换OKX Wallet余额数据:', okxWalletBalances)
-  console.log('地址:', address)
-
   const tokens = []
 
   // OKX Wallet API返回的数据结构处理
@@ -334,7 +310,6 @@ const formatOkxWalletBalanceToAddressBalance = (okxWalletBalances, address) => {
           tokenType: tokenData.tokenType || '1',
           isRiskToken: tokenData.isRiskToken || false
         }
-        console.log('处理代币:', token.symbol, '余额:', token.balance, '价格:', token.tokenPrice, 'USD价值:', token.usdValue)
         tokens.push(token)
       }
     })
