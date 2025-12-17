@@ -1,0 +1,16 @@
+# OKX API 配置示例
+# 复制此文件内容创建 .env 或 .env.local 文件，并填写您的实际API信息
+# 注意: 不要将包含真实API密钥的文件提交到版本控制系统
+
+# OKX API Key - 在 https://www.okx.com/account/my-api 获取
+VUE_APP_OKX_API_KEY=your_okx_api_key_here
+
+# OKX API Secret - API密钥的Secret
+VUE_APP_OKX_API_SECRET=your_okx_api_secret_here
+
+# OKX API Passphrase - 创建API Key时设置的密码
+VUE_APP_OKX_PASSPHRASE=your_passphrase_here
+
+# 可选配置
+# VUE_APP_OKX_BASE_URL=https://www.okx.com
+# VUE_APP_OKX_TIMEOUT=10000
