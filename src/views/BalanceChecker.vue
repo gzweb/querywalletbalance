@@ -178,7 +178,10 @@
     <div v-if="loading" class="loading-overlay">
       <div class="loading-content">
         <i class="el-icon-loading loading-icon"></i>
-        <p>正在查询余额... {{ loadingStatus }}</p>
+        <p>正在查询余额...</p>
+        <p v-if="currentLoadingAddress" class="loading-address">
+          当前查询: {{ currentLoadingAddress.length > 10 ? currentLoadingAddress.substring(0, 10) + '...' : currentLoadingAddress }}
+        </p>
         <p class="loading-tip">每查询一个地址间隔1秒，避免API限制</p>
       </div>
     </div>
@@ -199,7 +202,8 @@ export default {
       loading: false,
       loadingProgress: 0,
       currentLoadingAddress: '',
-      testingApi: false
+      testingApi: false,
+      cachedAddressCount: 0 // 缓存地址数量，避免computed循环依赖
     }
   },
   computed: {
@@ -269,17 +273,6 @@ export default {
         }
       })
       return chains.size
-    },
-
-    loadingStatus() {
-      if (!this.currentLoadingAddress) return ''
-      const currentIndex = this.results.length + 1
-      // 使用当前查询的总地址数估算
-      const estimatedTotal = Math.max(currentIndex, this.parsedAddresses.length)
-      const shortAddress = this.currentLoadingAddress.length > 10
-        ? `${this.currentLoadingAddress.substring(0, 6)}...${this.currentLoadingAddress.substring(this.currentLoadingAddress.length - 4)}`
-        : this.currentLoadingAddress
-      return `第 ${currentIndex}/${estimatedTotal} 个地址 (${shortAddress})`
     }
   },
   methods: {
@@ -297,6 +290,9 @@ export default {
       this.loading = true
       this.loadingProgress = 0
       this.results = []
+
+      // 缓存地址数量，避免在computed中重复计算
+      this.cachedAddressCount = this.parsedAddresses.length
 
       // 设置最大超时时间（30秒），防止无限loading
       const timeoutPromise = new Promise((_, reject) => {
@@ -316,10 +312,11 @@ export default {
 
       } catch (error) {
         console.error('查询余额失败:', error)
-        this.$message.error('查询失败，请稍后重试')
+        this.$message.error(error.message || '查询失败，请稍后重试')
       } finally {
+        // 确保无论什么情况下都能重置loading状态
         this.loading = false
-        this.loadingProgress = 100 // 确保完成时显示100%
+        this.loadingProgress = 100
         this.currentLoadingAddress = ''
       }
     },
@@ -327,9 +324,6 @@ export default {
     async performBatchQuery(addresses) {
       const totalAddresses = addresses.length
       let processedCount = 0
-
-      // 设置初始进度
-      this.loadingProgress = 0
 
       // 逐个查询地址，每个地址间隔1秒
       for (let i = 0; i < addresses.length; i++) {
@@ -877,6 +871,13 @@ export default {
   100% {
     transform: rotate(360deg);
   }
+}
+
+.loading-address {
+  font-size: 14px !important;
+  color: #409eff !important;
+  margin-top: 8px !important;
+  font-weight: 500;
 }
 
 .loading-tip {
